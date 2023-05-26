@@ -1,7 +1,7 @@
 // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
 // If a copy of the MPL was not distributed with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 // Copyright (C) LibreHardwareMonitor and Contributors.
-// Partial Copyright (C) Michael Möller <mmoeller@openhardwaremonitor.org> and Contributors.
+// Partial Copyright (C) Michael MÃ¶ller <mmoeller@openhardwaremonitor.org> and Contributors.
 // All Rights Reserved.
 
 namespace LibreHardwareMonitor.UI
@@ -59,10 +59,12 @@ namespace LibreHardwareMonitor.UI
             this.fanControllerMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.hddMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.nicMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.psuMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuItem6 = new System.Windows.Forms.ToolStripSeparator();
             this.exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.viewMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.resetMinMaxMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.resetPlotMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.MenuItem3 = new System.Windows.Forms.ToolStripSeparator();
             this.hiddenMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.plotMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -101,6 +103,13 @@ namespace LibreHardwareMonitor.UI
             this.log1hMenuItem = new LibreHardwareMonitor.UI.ToolStripRadioButtonMenuItem();
             this.log2hMenuItem = new LibreHardwareMonitor.UI.ToolStripRadioButtonMenuItem();
             this.log6hMenuItem = new LibreHardwareMonitor.UI.ToolStripRadioButtonMenuItem();
+            this.updateIntervalMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.updateInterval250msMenuItem = new LibreHardwareMonitor.UI.ToolStripRadioButtonMenuItem();
+            this.updateInterval500msMenuItem = new LibreHardwareMonitor.UI.ToolStripRadioButtonMenuItem();
+            this.updateInterval1sMenuItem = new LibreHardwareMonitor.UI.ToolStripRadioButtonMenuItem();
+            this.updateInterval2sMenuItem = new LibreHardwareMonitor.UI.ToolStripRadioButtonMenuItem();
+            this.updateInterval5sMenuItem = new LibreHardwareMonitor.UI.ToolStripRadioButtonMenuItem();
+            this.updateInterval10sMenuItem = new LibreHardwareMonitor.UI.ToolStripRadioButtonMenuItem();
             this.sensorValuesTimeWindowMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.timeWindow30sMenuItem = new LibreHardwareMonitor.UI.ToolStripRadioButtonMenuItem();
             this.timeWindow1minMenuItem = new LibreHardwareMonitor.UI.ToolStripRadioButtonMenuItem();
@@ -125,6 +134,9 @@ namespace LibreHardwareMonitor.UI
             this.timer = new System.Windows.Forms.Timer(this.components);
             this.splitContainer = new LibreHardwareMonitor.UI.SplitContainerAdv();
             this.treeView = new Aga.Controls.Tree.TreeViewAdv();
+            this.batteryMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.psuMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.backgroundUpdater = new System.ComponentModel.BackgroundWorker();
             this.mainMenu.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer)).BeginInit();
             this.splitContainer.Panel1.SuspendLayout();
@@ -238,19 +250,19 @@ namespace LibreHardwareMonitor.UI
             // saveReportMenuItem
             // 
             this.saveReportMenuItem.Name = "saveReportMenuItem";
-            this.saveReportMenuItem.Size = new System.Drawing.Size(145, 22);
+            this.saveReportMenuItem.Size = new System.Drawing.Size(180, 22);
             this.saveReportMenuItem.Text = "Save Report...";
             this.saveReportMenuItem.Click += new System.EventHandler(this.SaveReportMenuItem_Click);
             // 
             // MenuItem2
             // 
             this.MenuItem2.Name = "MenuItem2";
-            this.MenuItem2.Size = new System.Drawing.Size(142, 6);
+            this.MenuItem2.Size = new System.Drawing.Size(177, 6);
             // 
             // resetMenuItem
             // 
             this.resetMenuItem.Name = "resetMenuItem";
-            this.resetMenuItem.Size = new System.Drawing.Size(145, 22);
+            this.resetMenuItem.Size = new System.Drawing.Size(180, 22);
             this.resetMenuItem.Text = "Reset";
             this.resetMenuItem.Click += new System.EventHandler(this.ResetClick);
             // 
@@ -263,62 +275,70 @@ namespace LibreHardwareMonitor.UI
             this.gpuMenuItem,
             this.fanControllerMenuItem,
             this.hddMenuItem,
-            this.nicMenuItem});
+            this.nicMenuItem,
+            this.psuMenuItem,
+            this.batteryMenuItem});
             this.menuItem5.Name = "menuItem5";
-            this.menuItem5.Size = new System.Drawing.Size(145, 22);
+            this.menuItem5.Size = new System.Drawing.Size(180, 22);
             this.menuItem5.Text = "Hardware";
             // 
             // mainboardMenuItem
             // 
             this.mainboardMenuItem.Name = "mainboardMenuItem";
-            this.mainboardMenuItem.Size = new System.Drawing.Size(160, 22);
+            this.mainboardMenuItem.Size = new System.Drawing.Size(180, 22);
             this.mainboardMenuItem.Text = "Motherboard";
             // 
             // cpuMenuItem
             // 
             this.cpuMenuItem.Name = "cpuMenuItem";
-            this.cpuMenuItem.Size = new System.Drawing.Size(160, 22);
+            this.cpuMenuItem.Size = new System.Drawing.Size(180, 22);
             this.cpuMenuItem.Text = "CPU";
             // 
             // ramMenuItem
             // 
             this.ramMenuItem.Name = "ramMenuItem";
-            this.ramMenuItem.Size = new System.Drawing.Size(160, 22);
+            this.ramMenuItem.Size = new System.Drawing.Size(180, 22);
             this.ramMenuItem.Text = "RAM";
             // 
             // gpuMenuItem
             // 
             this.gpuMenuItem.Name = "gpuMenuItem";
-            this.gpuMenuItem.Size = new System.Drawing.Size(160, 22);
+            this.gpuMenuItem.Size = new System.Drawing.Size(180, 22);
             this.gpuMenuItem.Text = "GPU";
             // 
             // fanControllerMenuItem
             // 
             this.fanControllerMenuItem.Name = "fanControllerMenuItem";
-            this.fanControllerMenuItem.Size = new System.Drawing.Size(160, 22);
+            this.fanControllerMenuItem.Size = new System.Drawing.Size(180, 22);
             this.fanControllerMenuItem.Text = "Fan Controllers";
             // 
             // hddMenuItem
             // 
             this.hddMenuItem.Name = "hddMenuItem";
-            this.hddMenuItem.Size = new System.Drawing.Size(160, 22);
-            this.hddMenuItem.Text = "Hard Disk Drives";
+            this.hddMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.hddMenuItem.Text = "Storage Devices";
             // 
             // nicMenuItem
             // 
             this.nicMenuItem.Name = "nicMenuItem";
-            this.nicMenuItem.Size = new System.Drawing.Size(160, 22);
+            this.nicMenuItem.Size = new System.Drawing.Size(180, 22);
             this.nicMenuItem.Text = "Network";
+            // 
+            // psuMenuItem
+            // 
+            this.psuMenuItem.Name = "psuMenuItem";
+            this.psuMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.psuMenuItem.Text = "Power supplies";
             // 
             // menuItem6
             // 
             this.menuItem6.Name = "menuItem6";
-            this.menuItem6.Size = new System.Drawing.Size(142, 6);
+            this.menuItem6.Size = new System.Drawing.Size(177, 6);
             // 
             // exitMenuItem
             // 
             this.exitMenuItem.Name = "exitMenuItem";
-            this.exitMenuItem.Size = new System.Drawing.Size(145, 22);
+            this.exitMenuItem.Size = new System.Drawing.Size(180, 22);
             this.exitMenuItem.Text = "Exit";
             this.exitMenuItem.Click += new System.EventHandler(this.ExitClick);
             // 
@@ -326,6 +346,7 @@ namespace LibreHardwareMonitor.UI
             // 
             this.viewMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.resetMinMaxMenuItem,
+            this.resetPlotMenuItem,
             this.MenuItem3,
             this.hiddenMenuItem,
             this.plotMenuItem,
@@ -342,6 +363,13 @@ namespace LibreHardwareMonitor.UI
             this.resetMinMaxMenuItem.Size = new System.Drawing.Size(188, 22);
             this.resetMinMaxMenuItem.Text = "Reset Min/Max";
             this.resetMinMaxMenuItem.Click += new System.EventHandler(this.ResetMinMaxMenuItem_Click);
+            // 
+            // resetPlotMenuItem
+            // 
+            this.resetPlotMenuItem.Name = "resetPlotMenuItem";
+            this.resetPlotMenuItem.Size = new System.Drawing.Size(188, 22);
+            this.resetPlotMenuItem.Text = "Reset Plot";
+            this.resetPlotMenuItem.Click += new System.EventHandler(this.resetPlotMenuItem_Click);
             // 
             // MenuItem3
             // 
@@ -384,19 +412,19 @@ namespace LibreHardwareMonitor.UI
             // valueMenuItem
             // 
             this.valueMenuItem.Name = "valueMenuItem";
-            this.valueMenuItem.Size = new System.Drawing.Size(102, 22);
+            this.valueMenuItem.Size = new System.Drawing.Size(180, 22);
             this.valueMenuItem.Text = "Value";
             // 
             // minMenuItem
             // 
             this.minMenuItem.Name = "minMenuItem";
-            this.minMenuItem.Size = new System.Drawing.Size(102, 22);
+            this.minMenuItem.Size = new System.Drawing.Size(180, 22);
             this.minMenuItem.Text = "Min";
             // 
             // maxMenuItem
             // 
             this.maxMenuItem.Name = "maxMenuItem";
-            this.maxMenuItem.Size = new System.Drawing.Size(102, 22);
+            this.maxMenuItem.Size = new System.Drawing.Size(180, 22);
             this.maxMenuItem.Text = "Max";
             // 
             // optionsMenuItem
@@ -412,6 +440,7 @@ namespace LibreHardwareMonitor.UI
             this.logSeparatorMenuItem,
             this.logSensorsMenuItem,
             this.loggingIntervalMenuItem,
+            this.updateIntervalMenuItem,
             this.sensorValuesTimeWindowMenuItem,
             this.webMenuItemSeparator,
             this.webMenuItem});
@@ -625,6 +654,61 @@ namespace LibreHardwareMonitor.UI
             this.log6hMenuItem.Name = "log6hMenuItem";
             this.log6hMenuItem.Size = new System.Drawing.Size(107, 22);
             this.log6hMenuItem.Text = "6h";
+            //
+            // updateIntervalMenuItem
+            // 
+            this.updateIntervalMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.updateInterval250msMenuItem,
+            this.updateInterval500msMenuItem,
+            this.updateInterval1sMenuItem,
+            this.updateInterval2sMenuItem,
+            this.updateInterval5sMenuItem,
+            this.updateInterval10sMenuItem});
+            this.updateIntervalMenuItem.Name = "updateIntervalMenuItem";
+            this.updateIntervalMenuItem.Size = new System.Drawing.Size(221, 22);
+            this.updateIntervalMenuItem.Text = "Update Interval";
+            // 
+            // updateInterval250msMenuItem
+            // 
+            this.updateInterval250msMenuItem.CheckOnClick = true;
+            this.updateInterval250msMenuItem.Name = "updateInterval250msMenuItem";
+            this.updateInterval250msMenuItem.Size = new System.Drawing.Size(107, 22);
+            this.updateInterval250msMenuItem.Text = "250ms";
+            // 
+            // updateInterval500msMenuItem
+            // 
+            this.updateInterval500msMenuItem.CheckOnClick = true;
+            this.updateInterval500msMenuItem.Name = "updateInterval500msMenuItem";
+            this.updateInterval500msMenuItem.Size = new System.Drawing.Size(107, 22);
+            this.updateInterval500msMenuItem.Text = "500ms";
+            // 
+            // updateInterval1sMenuItem
+            // 
+            this.updateInterval1sMenuItem.CheckOnClick = true;
+            this.updateInterval1sMenuItem.Name = "updateInterval1sMenuItem";
+            this.updateInterval1sMenuItem.Size = new System.Drawing.Size(107, 22);
+            this.updateInterval1sMenuItem.Text = "1s";
+            // 
+            // updateInterval2sMenuItem
+            // 
+            this.updateInterval2sMenuItem.CheckOnClick = true;
+            this.updateInterval2sMenuItem.Name = "updateInterval2sMenuItem";
+            this.updateInterval2sMenuItem.Size = new System.Drawing.Size(107, 22);
+            this.updateInterval2sMenuItem.Text = "2s";
+            // 
+            // updateInterval5sMenuItem
+            // 
+            this.updateInterval5sMenuItem.CheckOnClick = true;
+            this.updateInterval5sMenuItem.Name = "updateInterval5sMenuItem";
+            this.updateInterval5sMenuItem.Size = new System.Drawing.Size(107, 22);
+            this.updateInterval5sMenuItem.Text = "5s";
+            // 
+            // updateInterval10sMenuItem
+            // 
+            this.updateInterval10sMenuItem.CheckOnClick = true;
+            this.updateInterval10sMenuItem.Name = "updateInterval10sMenuItem";
+            this.updateInterval10sMenuItem.Size = new System.Drawing.Size(107, 22);
+            this.updateInterval10sMenuItem.Text = "10s";
             // 
             // sensorValuesTimeWindowMenuItem
             // 
@@ -698,7 +782,7 @@ namespace LibreHardwareMonitor.UI
             this.timeWindow2hMenuItem.CheckOnClick = true;
             this.timeWindow2hMenuItem.Name = "timeWindow2hMenuItem";
             this.timeWindow2hMenuItem.Size = new System.Drawing.Size(107, 22);
-            this.timeWindow2hMenuItem.Text = "2n";
+            this.timeWindow2hMenuItem.Text = "2h";
             // 
             // timeWindow6hMenuItem
             // 
@@ -844,12 +928,19 @@ namespace LibreHardwareMonitor.UI
             this.treeView.MouseMove += new System.Windows.Forms.MouseEventHandler(this.TreeView_MouseMove);
             this.treeView.MouseUp += new System.Windows.Forms.MouseEventHandler(this.TreeView_MouseUp);
             // 
+            // batteryMenuItem
+            // 
+            this.batteryMenuItem.Name = "batteryMenuItem";
+            this.batteryMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.batteryMenuItem.Text = "Batteries";
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(418, 533);
             this.Controls.Add(this.splitContainer);
+            this.Controls.Add(this.mainMenu);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MainMenuStrip = this.mainMenu;
             this.Name = "MainForm";
@@ -860,11 +951,11 @@ namespace LibreHardwareMonitor.UI
             this.Move += new System.EventHandler(this.MainForm_MoveOrResize);
             this.mainMenu.ResumeLayout(false);
             this.mainMenu.PerformLayout();
-            this.Controls.Add(mainMenu);
             this.splitContainer.Panel1.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer)).EndInit();
             this.splitContainer.ResumeLayout(false);
             this.ResumeLayout(false);
+            this.PerformLayout();
 
         }
 
@@ -911,6 +1002,7 @@ namespace LibreHardwareMonitor.UI
         private ToolStripRadioButtonMenuItem fahrenheitMenuItem;
         private System.Windows.Forms.ToolStripSeparator MenuItem2;
         private System.Windows.Forms.ToolStripMenuItem resetMinMaxMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem resetPlotMenuItem;
         private System.Windows.Forms.ToolStripSeparator MenuItem3;
         private System.Windows.Forms.ToolStripMenuItem gadgetMenuItem;
         private System.Windows.Forms.ToolStripMenuItem minCloseMenuItem;
@@ -945,6 +1037,13 @@ namespace LibreHardwareMonitor.UI
         private ToolStripRadioButtonMenuItem log1hMenuItem;
         private ToolStripRadioButtonMenuItem log2hMenuItem;
         private ToolStripRadioButtonMenuItem log6hMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem updateIntervalMenuItem;
+        private ToolStripRadioButtonMenuItem updateInterval250msMenuItem;
+        private ToolStripRadioButtonMenuItem updateInterval500msMenuItem;
+        private ToolStripRadioButtonMenuItem updateInterval1sMenuItem;
+        private ToolStripRadioButtonMenuItem updateInterval2sMenuItem;
+        private ToolStripRadioButtonMenuItem updateInterval5sMenuItem;
+        private ToolStripRadioButtonMenuItem updateInterval10sMenuItem;
         private System.Windows.Forms.ToolStripMenuItem nicMenuItem;
         private System.Windows.Forms.ToolStripMenuItem sensorValuesTimeWindowMenuItem;
         private ToolStripRadioButtonMenuItem timeWindow30sMenuItem;
@@ -959,6 +1058,9 @@ namespace LibreHardwareMonitor.UI
         private ToolStripRadioButtonMenuItem timeWindow12hMenuItem;
         private ToolStripRadioButtonMenuItem timeWindow24hMenuItem;
         private System.Windows.Forms.ToolStripMenuItem authWebServerMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem psuMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem batteryMenuItem;
+        private System.ComponentModel.BackgroundWorker backgroundUpdater;
     }
 }
 
