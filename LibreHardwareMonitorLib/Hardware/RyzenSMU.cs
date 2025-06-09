@@ -18,7 +18,6 @@ internal class RyzenSMU
     private const uint SMU_RETRIES_MAX = 8096;
 
     private readonly CpuCodeName _cpuCodeName;
-    private readonly Mutex _mutex = new();
     private readonly bool _supportedCPU;
 
     private readonly Dictionary<uint, Dictionary<uint, SmuSensorType>> _supportedPmTableVersions = new()
@@ -84,22 +83,24 @@ internal class RyzenSMU
                 { 50, new SmuSensorType { Name = "Uncore", Type = SensorType.Clock, Scale = 1 } },
                 { 51, new SmuSensorType { Name = "Memory", Type = SensorType.Clock, Scale = 1 } },
                 { 127, new SmuSensorType { Name = "SoC", Type = SensorType.Temperature, Scale = 1 } },
-                { 268, new SmuSensorType { Name = "Core #1 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
-                { 269, new SmuSensorType { Name = "Core #2 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
-                { 270, new SmuSensorType { Name = "Core #3 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
-                { 271, new SmuSensorType { Name = "Core #4 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
-                { 272, new SmuSensorType { Name = "Core #5 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
-                { 273, new SmuSensorType { Name = "Core #6 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
-                { 274, new SmuSensorType { Name = "Core #7 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
-                { 275, new SmuSensorType { Name = "Core #8 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
-                { 276, new SmuSensorType { Name = "Core #9 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
-                { 277, new SmuSensorType { Name = "Core #10 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
-                { 278, new SmuSensorType { Name = "Core #11 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
-                { 279, new SmuSensorType { Name = "Core #12 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
-                { 280, new SmuSensorType { Name = "Core #13 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
-                { 281, new SmuSensorType { Name = "Core #14 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
-                { 282, new SmuSensorType { Name = "Core #15 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
-                { 283, new SmuSensorType { Name = "Core #16 (Effective)", Type = SensorType.Clock, Scale = 1000 } }
+
+                //Core effective clock is now calculated in Amd17Cpu/Core
+                //{ 268, new SmuSensorType { Name = "Core #1 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
+                //{ 269, new SmuSensorType { Name = "Core #2 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
+                //{ 270, new SmuSensorType { Name = "Core #3 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
+                //{ 271, new SmuSensorType { Name = "Core #4 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
+                //{ 272, new SmuSensorType { Name = "Core #5 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
+                //{ 273, new SmuSensorType { Name = "Core #6 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
+                //{ 274, new SmuSensorType { Name = "Core #7 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
+                //{ 275, new SmuSensorType { Name = "Core #8 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
+                //{ 276, new SmuSensorType { Name = "Core #9 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
+                //{ 277, new SmuSensorType { Name = "Core #10 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
+                //{ 278, new SmuSensorType { Name = "Core #11 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
+                //{ 279, new SmuSensorType { Name = "Core #12 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
+                //{ 280, new SmuSensorType { Name = "Core #13 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
+                //{ 281, new SmuSensorType { Name = "Core #14 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
+                //{ 282, new SmuSensorType { Name = "Core #15 (Effective)", Type = SensorType.Clock, Scale = 1000 } },
+                //{ 283, new SmuSensorType { Name = "Core #16 (Effective)", Type = SensorType.Clock, Scale = 1000 } }
             }
         },
         {
@@ -192,6 +193,11 @@ internal class RyzenSMU
                 0x61 => CpuCodeName.Raphael,
                 _ => CpuCodeName.Undefined
             },
+            0x1A => model switch
+            {
+                0x44 => CpuCodeName.GraniteRidge,
+                _ => CpuCodeName.Undefined
+            },
             _ => CpuCodeName.Undefined
         };
     }
@@ -233,6 +239,7 @@ internal class RyzenSMU
             case CpuCodeName.Matisse:
             case CpuCodeName.Vermeer:
             case CpuCodeName.Raphael:
+            case CpuCodeName.GraniteRidge:
                 _cmdAddr = 0x3B10524;
                 _rspAddr = 0x3B10570;
                 _argsAddr = 0x3B10A40;
@@ -264,12 +271,9 @@ internal class RyzenSMU
 
     public uint GetSmuVersion()
     {
-        uint[] args = { 1 };
+        uint[] args = [1];
 
-        if (SendCommand(0x02, ref args))
-            return args[0];
-
-        return 0;
+        return SendCommand(0x02, ref args) ? args[0] : 0;
     }
 
     public Dictionary<uint, SmuSensorType> GetPmTableStructure()
@@ -288,7 +292,7 @@ internal class RyzenSMU
     public float[] GetPmTable()
     {
         if (!_supportedCPU || !TransferTableToDram())
-            return new float[] { 0 };
+            return [0];
 
         float[] table = ReadDramToArray();
 
@@ -428,10 +432,15 @@ internal class RyzenSMU
                 break;
 
             case CpuCodeName.Raphael:
+            case CpuCodeName.GraniteRidge:
                 switch (_pmTableVersion)
                 {
                     case 0x00540004:
                         _pmTableSize = 0x948;
+                        break;
+
+                    case 0x00540104:
+                        _pmTableSize = 0x950;
                         break;
 
                     default:
@@ -447,7 +456,7 @@ internal class RyzenSMU
 
     private bool GetPmTableVersion(ref uint version)
     {
-        uint[] args = { 0 };
+        uint[] args = [0];
         uint fn;
 
         switch (_cpuCodeName)
@@ -464,6 +473,7 @@ internal class RyzenSMU
                 fn = 0x06;
                 break;
             case CpuCodeName.Raphael:
+            case CpuCodeName.GraniteRidge:
                 fn = 0x05;
                 break;
             default:
@@ -478,7 +488,7 @@ internal class RyzenSMU
 
     private void SetupAddrClass1(uint[] fn)
     {
-        uint[] args = { 1, 1 };
+        uint[] args = [1, 1];
 
         bool command = SendCommand(fn[0], ref args);
         if (!command)
@@ -490,13 +500,13 @@ internal class RyzenSMU
 
     private void SetupAddrClass2(uint[] fn)
     {
-        uint[] args = { 0, 0, 0, 0, 0, 0 };
+        uint[] args = [0, 0, 0, 0, 0, 0];
 
         bool command = SendCommand(fn[0], ref args);
         if (!command)
             return;
 
-        args = new uint[] { 0 };
+        args = [0];
         command = SendCommand(fn[1], ref args);
         if (!command)
             return;
@@ -506,15 +516,15 @@ internal class RyzenSMU
 
     private void SetupAddrClass3(uint[] fn)
     {
-        uint[] parts = { 0, 0 };
+        uint[] parts = [0, 0];
 
         // == Part 1 ==
-        uint[] args = { 3 };
+        uint[] args = [3];
         bool command = SendCommand(fn[0], ref args);
         if (!command)
             return;
 
-        args = new uint[] { 3 };
+        args = [3];
         command = SendCommand(fn[2], ref args);
         if (!command)
             return;
@@ -524,17 +534,17 @@ internal class RyzenSMU
         // == Part 1 End ==
 
         // == Part 2 ==
-        args = new uint[] { 3 };
+        args = [3];
         command = SendCommand(fn[1], ref args);
         if (!command)
             return;
 
-        args = new uint[] { 5 };
+        args = [5];
         command = SendCommand(fn[0], ref args);
         if (!command)
             return;
 
-        args = new uint[] { 5 };
+        args = [5];
         command = SendCommand(fn[2], ref args);
         if (!command)
             return;
@@ -548,11 +558,12 @@ internal class RyzenSMU
 
     private void SetupDramBaseAddr()
     {
-        uint[] fn = { 0, 0, 0 };
+        uint[] fn = [0, 0, 0];
 
         switch (_cpuCodeName)
         {
             case CpuCodeName.Raphael:
+            case CpuCodeName.GraniteRidge:
                 fn[0] = 0x04;
                 SetupAddrClass1(fn);
                 return;
@@ -588,12 +599,13 @@ internal class RyzenSMU
 
     public bool TransferTableToDram()
     {
-        uint[] args = { 0 };
+        uint[] args = [0];
         uint fn;
 
         switch (_cpuCodeName)
         {
             case CpuCodeName.Raphael:
+            case CpuCodeName.GraniteRidge:
                 fn = 0x03;
                 break;
             case CpuCodeName.Matisse:
@@ -626,7 +638,7 @@ internal class RyzenSMU
             cmdArgs[i] = args[i];
 
         uint tmp = 0;
-        if (_mutex.WaitOne(5000))
+        if (Mutexes.WaitPciBus(5000))
         {
             // Step 1: Wait until the RSP register is non-zero.
 
@@ -636,17 +648,17 @@ internal class RyzenSMU
             {
                 if (!ReadReg(_rspAddr, ref tmp))
                 {
-                    _mutex.ReleaseMutex();
+                    Mutexes.ReleasePciBus();
                     return false;
                 }
             }
-            while (tmp == 0 && 0 != retries--);
+            while (tmp == 0 && retries-- != 0);
 
             // Step 1.b: A command is still being processed meaning a new command cannot be issued.
 
             if (retries == 0 && tmp == 0)
             {
-                _mutex.ReleaseMutex();
+                Mutexes.ReleasePciBus();
                 return false;
             }
 
@@ -667,7 +679,7 @@ internal class RyzenSMU
             {
                 if (!ReadReg(_rspAddr, ref tmp))
                 {
-                    _mutex.ReleaseMutex();
+                    Mutexes.ReleasePciBus();
                     return false;
                 }
             }
@@ -675,7 +687,7 @@ internal class RyzenSMU
 
             if (retries == 0 && tmp != (uint)Status.OK)
             {
-                _mutex.ReleaseMutex();
+                Mutexes.ReleasePciBus();
                 return false;
             }
 
@@ -686,13 +698,13 @@ internal class RyzenSMU
             {
                 if (!ReadReg(_argsAddr + (uint)(i * 4), ref args[i]))
                 {
-                    _mutex.ReleaseMutex();
+                    Mutexes.ReleasePciBus();
                     return false;
                 }
             }
 
             ReadReg(_rspAddr, ref tmp);
-            _mutex.ReleaseMutex();
+            Mutexes.ReleasePciBus();
         }
 
         return tmp == (uint)Status.OK;
@@ -700,12 +712,12 @@ internal class RyzenSMU
 
     private static void WriteReg(uint addr, uint data)
     {
-        if (Ring0.WaitPciBusMutex(10))
+        if (Mutexes.WaitPciBus(10))
         {
             if (Ring0.WritePciConfig(0x00, SMU_PCI_ADDR_REG, addr))
                 Ring0.WritePciConfig(0x00, SMU_PCI_DATA_REG, data);
 
-            Ring0.ReleasePciBusMutex();
+            Mutexes.ReleasePciBus();
         }
     }
 
@@ -713,12 +725,12 @@ internal class RyzenSMU
     {
         bool read = false;
 
-        if (Ring0.WaitPciBusMutex(10))
+        if (Mutexes.WaitPciBus(10))
         {
             if (Ring0.WritePciConfig(0x00, SMU_PCI_ADDR_REG, addr))
                 read = Ring0.ReadPciConfig(0x00, SMU_PCI_DATA_REG, out data);
 
-            Ring0.ReleasePciBusMutex();
+            Mutexes.ReleasePciBus();
         }
 
         return read;
@@ -759,6 +771,7 @@ internal class RyzenSMU
         Cezanne,
         Milan,
         Dali,
-        Raphael
+        Raphael,
+        GraniteRidge
     }
 }

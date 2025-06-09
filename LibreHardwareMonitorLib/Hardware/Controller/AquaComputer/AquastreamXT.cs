@@ -5,6 +5,7 @@
 
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using HidSharp;
 
 namespace LibreHardwareMonitor.Hardware.Controller.AquaComputer;
@@ -25,7 +26,7 @@ internal sealed class AquastreamXT : Hardware
     private readonly Sensor[] _temperatures = new Sensor[3];
     private readonly Sensor[] _voltages = new Sensor[2];
 
-    public AquastreamXT(HidDevice dev, ISettings settings) : base("Aquastream XT", new Identifier(dev.DevicePath), settings)
+    public AquastreamXT(HidDevice dev, ISettings settings) : base("Aquastream XT", new Identifier(dev), settings)
     {
         if (dev.TryOpen(out _stream))
         {
@@ -119,8 +120,16 @@ internal sealed class AquastreamXT : Hardware
     //TODO: Check tested and fix unknown variables
     public override void Update()
     {
-        _rawData[0] = 0x4;
-        _stream.GetFeature(_rawData);
+        try
+        {
+            _rawData[0] = 0x4;
+            _stream.GetFeature(_rawData);
+        }
+        catch (IOException)
+        {
+            return;
+        }
+
 
         if (_rawData[0] != 0x4)
             return;

@@ -69,10 +69,17 @@ internal class Nct677X : ISuperIO
 
             _vBatMonitorControlRegister = 0x0318;
         }
-        else if (chip is Chip.NCT6683D or Chip.NCT6686D or Chip.NCT6687D)
+        else if (chip is Chip.NCT6683D or Chip.NCT6686D or Chip.NCT6687D) //These work on older NCT6687D boards, but only fans 0, 1 and 3 on newer (X870 and Z890) motherboards. Unsure of controls for "next pack of 8".
         {
-            FAN_PWM_OUT_REG = new ushort[] { 0x160, 0x161, 0x162, 0x163, 0x164, 0x165, 0x166, 0x167 };
-            FAN_PWM_COMMAND_REG = new ushort[] { 0xA28, 0xA29, 0xA2A, 0xA2B, 0xA2C, 0xA2D, 0xA2E, 0xA2F };
+            FAN_PWM_OUT_REG = new ushort[] { 0x160, 0x161, 0x162, 0x163, 0x164, 0x165, 0x166, 0x167 }; // Next 8 fans will be 0xE00, 0xE01, 0xE02, 0xE03, 0xE04, 0xE05, 0xE06, 0xE07 
+            FAN_PWM_COMMAND_REG = new ushort[] { 0xA28, 0xA29, 0xA2A, 0xA2B, 0xA2C, 0xA2D, 0xA2E, 0xA2F }; // Possibly 0X260, 0X261, 0X262, 0X263, 0X264, 0X265, 0X266, 0X267 but can't confirm
+            FAN_CONTROL_MODE_REG = new ushort[] { 0xA00, 0xA00, 0xA00, 0xA00, 0xA00, 0xA00, 0xA00, 0xA00 }; // Not sure of next 8, MSI won't provide info
+            FAN_PWM_REQUEST_REG = new ushort[] { 0xA01, 0xA01, 0xA01, 0xA01, 0xA01, 0xA01, 0xA01, 0xA01 }; // Not sure of next 8, MSI won't provide info
+        }
+        else if (chip is Chip.NCT6687DR) // MSI AM5/LGA1851 Motherboards
+        {
+            FAN_PWM_OUT_REG = new ushort[] { 0x160, 0x161, 0xE05, 0xE04, 0xE03, 0xE02, 0xE01, 0xE00 }; // Duty Cycle Sensors
+            FAN_PWM_COMMAND_REG = new ushort[] { 0xA28, 0xA29, 0xC70, 0xC58, 0xC40, 0xC28, 0xC10, 0xBF8 }; // Control Registers for CPU/Pump, Initial Fan Curve Registers for System Fans
             FAN_CONTROL_MODE_REG = new ushort[] { 0xA00, 0xA00, 0xA00, 0xA00, 0xA00, 0xA00, 0xA00, 0xA00 };
             FAN_PWM_REQUEST_REG = new ushort[] { 0xA01, 0xA01, 0xA01, 0xA01, 0xA01, 0xA01, 0xA01, 0xA01 };
         }
@@ -140,17 +147,18 @@ internal class Nct677X : ISuperIO
                 Temperatures = new float?[4];
                 break;
 
-            case Chip.NCT6779D:
-            case Chip.NCT6791D:
+            case Chip.NCT6779D: // 15 voltages
+            case Chip.NCT6791D: // 15 voltages
             case Chip.NCT6792D:
             case Chip.NCT6792DA:
-            case Chip.NCT6793D:
+            case Chip.NCT6793D: // 14 voltages
             case Chip.NCT6795D:
-            case Chip.NCT6796D:
-            case Chip.NCT6796DR:
+            case Chip.NCT6796D: // 16 voltages
+            case Chip.NCT6796DR: // 16 voltages
             case Chip.NCT6797D:
             case Chip.NCT6798D:
             case Chip.NCT6799D:
+            case Chip.NCT6701D:
                 switch (chip)
                 {
                     case Chip.NCT6779D:
@@ -162,6 +170,7 @@ internal class Nct677X : ISuperIO
                     case Chip.NCT6797D:
                     case Chip.NCT6798D:
                     case Chip.NCT6799D:
+                    case Chip.NCT6701D:
                         Fans = new float?[7];
                         Controls = new float?[7];
                         break;
@@ -180,8 +189,8 @@ internal class Nct677X : ISuperIO
                 // min value that could be transferred to 16-bit RPM registers
                 _minFanCount = 0x15;
 
-                Voltages = new float?[15];
-                _voltageRegisters = new ushort[] { 0x480, 0x481, 0x482, 0x483, 0x484, 0x485, 0x486, 0x487, 0x488, 0x489, 0x48A, 0x48B, 0x48C, 0x48D, 0x48E };
+                Voltages = new float?[16];
+                _voltageRegisters = new ushort[] { 0x480, 0x481, 0x482, 0x483, 0x484, 0x485, 0x486, 0x487, 0x488, 0x489, 0x48A, 0x48B, 0x48C, 0x48D, 0x48E, 0x48F };
                 _voltageVBatRegister = 0x488;
                 var temperaturesSources = new List<TemperatureSourceData>();
 
@@ -192,6 +201,7 @@ internal class Nct677X : ISuperIO
                     case Chip.NCT6797D:
                     case Chip.NCT6798D:
                     case Chip.NCT6799D:
+                    case Chip.NCT6701D:
                         temperaturesSources.AddRange(new TemperatureSourceData[]
                         {
                             new(SourceNct67Xxd.PECI_0, 0x073, 0x074, 7, 0x100),
@@ -202,6 +212,7 @@ internal class Nct677X : ISuperIO
                             new(SourceNct67Xxd.AUXTIN2, 0x07D, 0x07E, 7, 0xA00, 0x494),
                             new(SourceNct67Xxd.AUXTIN3, 0x4A0, 0x49E, 6, 0xB00, 0x495),
                             new(SourceNct67Xxd.AUXTIN4, 0x027, 0, -1, 0x621),
+                            new(SourceNct67Xxd.TSENSOR, 0x4A2, 0x4A1, 7, 0xC00, 0x496),
                             new(SourceNct67Xxd.SMBUSMASTER0, 0x150, 0x151, 7, 0x622),
                             new(SourceNct67Xxd.SMBUSMASTER1, 0x670, 0, -1, 0xC26),
                             new(SourceNct67Xxd.PECI_1, 0x672, 0, -1, 0xC27),
@@ -253,19 +264,22 @@ internal class Nct677X : ISuperIO
                 Voltages = new float?[9];
                 _voltageRegisters = new ushort[] { 0x300, 0x301, 0x302, 0x303, 0x304, 0x305, 0x307, 0x308, 0x309 };
                 _voltageVBatRegister = 0x308;
-                Temperatures = new float?[4];
+                Temperatures = new float?[7];
                 _temperaturesSource = new TemperatureSourceData[] {
-                    new(SourceNct610X.PECI_0, 0x027, 0, -1, 0x621),
-                    new(SourceNct610X.SYSTIN, 0x018, 0x01B, 7, 0x100, 0x018),
-                    new(SourceNct610X.CPUTIN, 0x019, 0x11B, 7, 0x200, 0x019),
-                    new(SourceNct610X.AUXTIN, 0x01A, 0x21B, 7, 0x300, 0x01A)
+                    new(SourceNct610X.PECI_0, 0x06b, 0, -1, 0x621),
+                    new(SourceNct610X.AUXTIN, 0x010, 0x016, 0),
+                    new(SourceNct610X.CPUTIN, 0x011, 0x01B, 1),
+                    new(SourceNct610X.SYSTIN0, 0x012, 0x01B, 2),
+                    new(SourceNct610X.SYSTIN1, 0x013, 0x016, 3),
+                    new(SourceNct610X.SYSTIN2, 0x014, 0x01B, 4),
+                    new(SourceNct610X.SYSTIN3, 0x015, 0x01B, 5)
                 };
                 break;
 
             case Chip.NCT6683D:
             case Chip.NCT6686D:
             case Chip.NCT6687D:
-                Fans = new float?[8];
+                Fans = new float?[16];
                 Controls = new float?[8];
                 Voltages = new float?[14];
                 Temperatures = new float?[7];
@@ -305,13 +319,19 @@ internal class Nct677X : ISuperIO
 
                 // CPU Fan
                 // PUMP Fan
-                // SYS Fan 1
-                // SYS Fan 2
-                // SYS Fan 3
-                // SYS Fan 4
-                // SYS Fan 5
-                // SYS Fan 6
-                _fanRpmRegister = new ushort[] { 0x140, 0x142, 0x144, 0x146, 0x148, 0x14A, 0x14C, 0x14E };
+                // SYS Fan 1 on some older NCT6687Ds, Nil on others
+                // SYS Fan 2 on some older NCT6687Ds, EZConn on others
+                // SYS Fan 3 on some older NCT6687Ds
+                // SYS Fan 4 on some older NCT6687Ds
+                // SYS Fan 5 on some older NCT6687Ds
+                // SYS Fan 6 on some older NCT6687Ds
+                // SYS Fan 6 on newer NCT6687Ds
+                // SYS Fan 5 on newer NCT6687Ds
+                // SYS Fan 4 on newer NCT6687Ds
+                // SYS Fan 3 on newer NCT6687Ds
+                // SYS Fan 2 on newer NCT6687Ds
+                // SYS Fan 1 on newer NCT6687Ds
+                _fanRpmRegister = new ushort[] { 0x140, 0x142, 0x144, 0x146, 0x148, 0x14A, 0x14C, 0x14E, 0x150, 0x152, 0x154, 0x156, 0x158, 0x15A, 0x15C, 0x15E };
 
                 _restoreDefaultFanControlRequired = new bool[_fanRpmRegister.Length];
                 _initialFanControlMode = new byte[_fanRpmRegister.Length];
@@ -326,6 +346,68 @@ internal class Nct677X : ISuperIO
                 }
 
                 // enable SIO voltage
+                WriteByte(0x1BB, 0x61);
+                WriteByte(0x1BC, 0x62);
+                WriteByte(0x1BD, 0x63);
+                WriteByte(0x1BE, 0x64);
+                WriteByte(0x1BF, 0x65);
+                break;
+
+            case Chip.NCT6687DR:
+                Fans = new float?[8];
+                Controls = new float?[8];
+                Voltages = new float?[14];
+                Temperatures = new float?[7];
+
+                _temperaturesSource = new TemperatureSourceData[] {
+                    new(null, 0x100), // CPU
+                    new(null, 0x102), // System
+                    new(null, 0x104), // MOS
+                    new(null, 0x106), // PCH
+                    new(null, 0x108), // CPU Socket
+                    new(null, 0x10A), // PCIE_1
+                    new(null, 0x10C)  // M2_1
+                };
+
+                // VIN0 +12V
+                // VIN1 +5V
+                // VIN2 VCore
+                // VIN3 SIO
+                // VIN4 DRAM
+                // VIN5 CPU IO
+                // VIN6 CPU SA
+                // VIN7 SIO
+                // 3VCC I/O +3.3
+                // SIO VTT
+                // SIO VREF
+                // SIO VSB
+                // SIO AVSB
+                // SIO VBAT
+                _voltageRegisters = new ushort[] { 0x120, 0x122, 0x124, 0x126, 0x128, 0x12A, 0x12C, 0x12E, 0x130, 0x13A, 0x13E, 0x136, 0x138, 0x13C };
+
+                // CPU Fan 0x140
+                // PUMP Fan 0x142
+                // SYS Fan 1 0x15E
+                // SYS Fan 2 0x15C
+                // SYS Fan 3 0x15A
+                // SYS Fan 4 0x158
+                // SYS Fan 5 0x156
+                // SYS Fan 6 0x154
+                _fanRpmRegister = new ushort[] { 0x140, 0x142, 0x15E, 0x15C, 0x15A, 0x158, 0x156, 0x154 };
+
+                _restoreDefaultFanControlRequired = new bool[_fanRpmRegister.Length];
+                _initialFanControlMode = new byte[_fanRpmRegister.Length];
+                _initialFanPwmCommand = new byte[_fanRpmRegister.Length];
+
+                // initialize
+                const ushort initRegisterNct6687DR = 0x180;
+                byte dataNct6687DR = ReadByte(initRegisterNct6687DR);
+                if ((dataNct6687DR & 0x80) == 0)
+                {
+                    WriteByte(initRegisterNct6687DR, (byte)(dataNct6687DR | 0x80));
+                }
+
+                // enable SIO voltage -- address, value
                 WriteByte(0x1BB, 0x61);
                 WriteByte(0x1BC, 0x62);
                 WriteByte(0x1BD, 0x63);
@@ -361,14 +443,14 @@ internal class Nct677X : ISuperIO
         if (index < 0 || index >= Controls.Length)
             throw new ArgumentOutOfRangeException(nameof(index));
 
-        if (!Ring0.WaitIsaBusMutex(10))
+        if (!Mutexes.WaitIsaBus(10))
             return;
 
         if (value.HasValue)
         {
             SaveDefaultFanControl(index);
 
-            if (Chip is not Chip.NCT6683D and not Chip.NCT6686D and not Chip.NCT6687D)
+            if (Chip is not Chip.NCT6683D and not Chip.NCT6686D and not Chip.NCT6687D and not Chip.NCT6687DR)
             {
                 // set manual mode
                 WriteByte(FAN_CONTROL_MODE_REG[index], 0);
@@ -396,7 +478,15 @@ internal class Nct677X : ISuperIO
                 WriteByte(FAN_PWM_REQUEST_REG[index], 0x80);
                 Thread.Sleep(50);
 
-                WriteByte(FAN_PWM_COMMAND_REG[index], value.Value);
+                if (Chip is Chip.NCT6687DR) // For MSI AM5/LGA1851 NCT6687D functionality
+                {
+                    Set6687DRControl(index, value.Value);
+                }
+                else // All other Nuvoton SIO controllers and motherboards that use NCT6683/6686/6687
+                {
+                    WriteByte(FAN_PWM_COMMAND_REG[index], value.Value);
+                }
+
                 WriteByte(FAN_PWM_REQUEST_REG[index], 0x40);
                 Thread.Sleep(50);
             }
@@ -406,7 +496,7 @@ internal class Nct677X : ISuperIO
             RestoreDefaultFanControl(index);
         }
 
-        Ring0.ReleaseIsaBusMutex();
+        Mutexes.ReleaseIsaBus();
     }
 
     public void Update()
@@ -414,14 +504,14 @@ internal class Nct677X : ISuperIO
         if (!_isNuvotonVendor)
             return;
 
-        if (!Ring0.WaitIsaBusMutex(10))
+        if (!Mutexes.WaitIsaBus(10))
             return;
 
         DisableIOSpaceLock();
 
         for (int i = 0; i < Voltages.Length; i++)
         {
-            if (Chip is not Chip.NCT6683D and not Chip.NCT6686D and not Chip.NCT6687D)
+            if (Chip is not Chip.NCT6683D and not Chip.NCT6686D and not Chip.NCT6687D and not Chip.NCT6687DR)
             {
                 float value = 0.008f * ReadByte(_voltageRegisters[i]);
                 bool valid = value > 0;
@@ -460,11 +550,19 @@ internal class Nct677X : ISuperIO
 
             switch (Chip)
             {
+                case Chip.NCT610XD:
+                    value = (sbyte)ReadByte(ts.Register);
+                    int half = (ReadByte((ushort)(ts.HalfRegister)) >> ts.HalfBit) & 0x1;
+                    temperature = value + (0.5f * half);
+                    Temperatures[i] = temperature;
+                    break;
+
                 case Chip.NCT6687D:
+                case Chip.NCT6687DR:
                 case Chip.NCT6686D:
                 case Chip.NCT6683D:
                     value = (sbyte)ReadByte(ts.Register);
-                    int half = (ReadByte((ushort)(ts.Register + 1)) >> 7) & 0x1;
+                    half = (ReadByte((ushort)(ts.Register + 1)) >> 7) & 0x1;
                     Temperatures[i] = value + (0.5f * half);
                     break;
 
@@ -580,7 +678,7 @@ internal class Nct677X : ISuperIO
 
         for (int i = 0; i < Fans.Length; i++)
         {
-            if (Chip is not Chip.NCT6683D and not Chip.NCT6686D and not Chip.NCT6687D)
+            if (Chip is not Chip.NCT6683D and not Chip.NCT6686D and not Chip.NCT6687D and not Chip.NCT6687DR)
             {
                 if (_fanCountRegister != null)
                 {
@@ -621,7 +719,7 @@ internal class Nct677X : ISuperIO
 
         for (int i = 0; i < Controls.Length; i++)
         {
-            if (Chip is not Chip.NCT6683D and not Chip.NCT6686D and not Chip.NCT6687D)
+            if (Chip is not Chip.NCT6683D and not Chip.NCT6686D and not Chip.NCT6687D and not Chip.NCT6687DR)
             {
                 int value = ReadByte(FAN_PWM_OUT_REG[i]);
                 Controls[i] = value / 2.55f;
@@ -633,7 +731,7 @@ internal class Nct677X : ISuperIO
             }
         }
 
-        Ring0.ReleaseIsaBusMutex();
+        Mutexes.ReleaseIsaBus();
     }
 
     public string GetReport()
@@ -650,7 +748,7 @@ internal class Nct677X : ISuperIO
         r.AppendLine(_port.ToString("X4", CultureInfo.InvariantCulture));
         r.AppendLine();
 
-        if (!Ring0.WaitIsaBusMutex(100))
+        if (!Mutexes.WaitIsaBus(100))
             return r.ToString();
 
         ushort[] addresses =
@@ -762,7 +860,7 @@ internal class Nct677X : ISuperIO
         r.AppendLine("        00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F");
         r.AppendLine();
 
-        if (Chip is not Chip.NCT6683D and not Chip.NCT6686D and not Chip.NCT6687D)
+        if (Chip is not Chip.NCT6683D and not Chip.NCT6686D and not Chip.NCT6687D and not Chip.NCT6687DR)
         {
             foreach (ushort address in addresses)
             {
@@ -798,14 +896,14 @@ internal class Nct677X : ISuperIO
 
         r.AppendLine();
 
-        Ring0.ReleaseIsaBusMutex();
+        Mutexes.ReleaseIsaBus();
 
         return r.ToString();
     }
 
     private byte ReadByte(ushort address)
     {
-        if (Chip is not Chip.NCT6683D and not Chip.NCT6686D and not Chip.NCT6687D)
+        if (Chip is not Chip.NCT6683D and not Chip.NCT6686D and not Chip.NCT6687D and not Chip.NCT6687DR)
         {
             byte bank = (byte)(address >> 8);
             byte register = (byte)(address & 0xFF);
@@ -817,15 +915,40 @@ internal class Nct677X : ISuperIO
 
         byte page = (byte)(address >> 8);
         byte index = (byte)(address & 0xFF);
-        Ring0.WriteIoPort(_port + EC_SPACE_PAGE_REGISTER_OFFSET, EC_SPACE_PAGE_SELECT);
+
+        //wait for access, access == EC_SPACE_PAGE_SELECT
+        //timeout: after 500ms, abort and force access
+        byte access;
+
+        DateTime timeout = DateTime.UtcNow.AddMilliseconds(500);
+        while (true)
+        {
+            access = Ring0.ReadIoPort(_port + EC_SPACE_PAGE_REGISTER_OFFSET);
+            if (access == EC_SPACE_PAGE_SELECT || DateTime.UtcNow > timeout)
+                break;
+
+            System.Threading.Thread.Sleep(1);
+        }
+
+        if (access != EC_SPACE_PAGE_SELECT)
+        {
+            // Failed to gain access: force register access
+            Ring0.WriteIoPort(_port + EC_SPACE_PAGE_REGISTER_OFFSET, EC_SPACE_PAGE_SELECT);
+        }
+
         Ring0.WriteIoPort(_port + EC_SPACE_PAGE_REGISTER_OFFSET, page);
         Ring0.WriteIoPort(_port + EC_SPACE_INDEX_REGISTER_OFFSET, index);
-        return Ring0.ReadIoPort(_port + EC_SPACE_DATA_REGISTER_OFFSET);
+        byte result = Ring0.ReadIoPort(_port + EC_SPACE_DATA_REGISTER_OFFSET);
+
+        //free access for other instances
+        Ring0.WriteIoPort(_port + EC_SPACE_PAGE_REGISTER_OFFSET, EC_SPACE_PAGE_SELECT);
+
+        return result;
     }
 
     private void WriteByte(ushort address, byte value)
     {
-        if (Chip is not Chip.NCT6683D and not Chip.NCT6686D and not Chip.NCT6687D)
+        if (Chip is not Chip.NCT6683D and not Chip.NCT6686D and not Chip.NCT6687D and not Chip.NCT6687DR)
         {
             byte bank = (byte)(address >> 8);
             byte register = (byte)(address & 0xFF);
@@ -838,23 +961,77 @@ internal class Nct677X : ISuperIO
         {
             byte page = (byte)(address >> 8);
             byte index = (byte)(address & 0xFF);
-            Ring0.WriteIoPort(_port + EC_SPACE_PAGE_REGISTER_OFFSET, EC_SPACE_PAGE_SELECT);
+
+            //wait for access, access == EC_SPACE_PAGE_SELECT
+            //timeout: after 500ms, abort and force access
+            byte access;
+
+            DateTime timeout = DateTime.UtcNow.AddMilliseconds(500);
+            while (true)
+            {
+                access = Ring0.ReadIoPort(_port + EC_SPACE_PAGE_REGISTER_OFFSET);
+                if (access == EC_SPACE_PAGE_SELECT || DateTime.UtcNow > timeout)
+                    break;
+
+                System.Threading.Thread.Sleep(1);
+            }
+
+            if (access != EC_SPACE_PAGE_SELECT)
+            {
+                // Failed to gain access: force register access
+                Ring0.WriteIoPort(_port + EC_SPACE_PAGE_REGISTER_OFFSET, EC_SPACE_PAGE_SELECT);
+            }
+
             Ring0.WriteIoPort(_port + EC_SPACE_PAGE_REGISTER_OFFSET, page);
             Ring0.WriteIoPort(_port + EC_SPACE_INDEX_REGISTER_OFFSET, index);
             Ring0.WriteIoPort(_port + EC_SPACE_DATA_REGISTER_OFFSET, value);
+
+            //free access for other instances
+            Ring0.WriteIoPort(_port + EC_SPACE_PAGE_REGISTER_OFFSET, EC_SPACE_PAGE_SELECT);
         }
     }
 
     private bool IsNuvotonVendor()
     {
-        return Chip is Chip.NCT6683D or Chip.NCT6686D or Chip.NCT6687D || ((ReadByte(VENDOR_ID_HIGH_REGISTER) << 8) | ReadByte(VENDOR_ID_LOW_REGISTER)) == NUVOTON_VENDOR_ID;
+        return Chip is Chip.NCT6683D or Chip.NCT6686D or Chip.NCT6687D or Chip.NCT6687DR or Chip.NCT6701D || ((ReadByte(VENDOR_ID_HIGH_REGISTER) << 8) | ReadByte(VENDOR_ID_LOW_REGISTER)) == NUVOTON_VENDOR_ID;
+    }
+
+    private void Set6687DRControl(int index, byte? value)
+    {
+        if (index > 1) // System Fan Control
+        {
+            int initFanCurveReg = FAN_PWM_COMMAND_REG[index];       // Initial Register Address for the Fan Curve
+            int targetFanCurveAddr = initFanCurveReg;               // Address of the Current Fan Curve Register we're writing to
+            ushort targetFanCurveReg;                               // Integer value of the current fan curve register address, not the value within
+            byte currentSpeed = ReadByte(FAN_PWM_OUT_REG[index]);   // Current Speed of the target fan
+        
+            // If current fan duty cycle matches requested duty cycle, skip re-writing the fan curve 
+            if (currentSpeed == value.Value)
+            {
+                return;
+            }
+            else
+            {
+                // Write 7-point fan curve
+                for (int count = 0; count < 14; count += 2)
+                {
+                    targetFanCurveAddr = initFanCurveReg+count;
+                    targetFanCurveReg = Convert.ToUInt16(targetFanCurveAddr);
+                    WriteByte(targetFanCurveReg, value.Value);
+                }
+            }
+        }
+        else // Control CPU and Pump Fan normally
+        {
+            WriteByte(FAN_PWM_COMMAND_REG[index], value.Value);
+        }
     }
 
     private void SaveDefaultFanControl(int index)
     {
         if (!_restoreDefaultFanControlRequired[index])
         {
-            if (Chip is not Chip.NCT6683D and not Chip.NCT6686D and not Chip.NCT6687D)
+            if (Chip is not Chip.NCT6683D and not Chip.NCT6686D and not Chip.NCT6687D and not Chip.NCT6687DR)
             {
                 _initialFanControlMode[index] = ReadByte(FAN_CONTROL_MODE_REG[index]);
             }
@@ -874,7 +1051,7 @@ internal class Nct677X : ISuperIO
     {
         if (_restoreDefaultFanControlRequired[index])
         {
-            if (Chip is not Chip.NCT6683D and not Chip.NCT6686D and not Chip.NCT6687D)
+            if (Chip is not Chip.NCT6683D and not Chip.NCT6686D and not Chip.NCT6687D and not Chip.NCT6687DR)
             {
                 WriteByte(FAN_CONTROL_MODE_REG[index], _initialFanControlMode[index]);
                 WriteByte(FAN_PWM_COMMAND_REG[index], _initialFanPwmCommand[index]);
@@ -888,7 +1065,13 @@ internal class Nct677X : ISuperIO
                 WriteByte(FAN_PWM_REQUEST_REG[index], 0x80);
                 Thread.Sleep(50);
 
-                WriteByte(FAN_PWM_COMMAND_REG[index], _initialFanPwmCommand[index]);
+                if (Chip is Chip.NCT6687DR) { // for MSI AM5/LGA1851 boards using NCT6687D
+                    Set6687DRControl(index, _initialFanPwmCommand[index]);
+                }
+                else { // All other motherboards that use NCT6683/6686/6687
+                    WriteByte(FAN_PWM_COMMAND_REG[index], _initialFanPwmCommand[index]);
+                }
+
                 WriteByte(FAN_PWM_REQUEST_REG[index], 0x40);
                 Thread.Sleep(50);
             }
@@ -952,6 +1135,7 @@ internal class Nct677X : ISuperIO
         AUXTIN4 = 7,
         SMBUSMASTER0 = 8,
         SMBUSMASTER1 = 9,
+        TSENSOR = 10,
         PECI_0 = 16,
         PECI_1 = 17,
         PCH_CHIP_CPU_MAX_TEMP = 18,
@@ -972,9 +1156,12 @@ internal class Nct677X : ISuperIO
     [SuppressMessage("ReSharper", "InconsistentNaming")]
     private enum SourceNct610X : byte
     {
-        SYSTIN = 1,
-        CPUTIN = 2,
-        AUXTIN = 3,
+        CPUTIN = 1,
+        AUXTIN = 2,
+        SYSTIN0 = 3,
+        SYSTIN1 = 4,
+        SYSTIN2 = 5,
+        SYSTIN3 = 6,
         PECI_0 = 12
     }
 
